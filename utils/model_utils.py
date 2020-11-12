@@ -29,7 +29,9 @@ def get_model_name(args):
 
 
 def build_loaders(args):
-    if args.dataset.startswith('ss'):
+    if args.dataset.startswith('vvn'):
+        from data.Vvn import build_vid_loaders
+    elif args.dataset.startswith('ss'):
         args.bbox_num = int(args.dataset[2])
         from data.ShapeStacks import build_vid_loaders
     elif args.dataset.startswith('penn'):

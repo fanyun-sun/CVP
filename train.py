@@ -41,6 +41,8 @@ def main(args):
 
     if args.dataset == 'ss3':
         save_iters = [50000]
+    elif args.dataset == 'vvn':
+        save_iters = [10, 100]
     elif args.dataset.startswith('penn'):
         save_iters = [100000, 300000]
     else:

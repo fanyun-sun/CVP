@@ -31,11 +31,11 @@ class BaseOptions():
         # for Dataset
         parser.add_argument('--dataset', default='ss3')
         parser.add_argument('--modality', default='rgb')
-        parser.add_argument('--image_size', default='224, 224', type=int_tuple)
+        parser.add_argument('--image_size', default='256, 256', type=int_tuple)
         # parser.add_argument('--obj_size', default='32, 32', type=int_tuple)
-        parser.add_argument('--obj_size', default='224, 224', type=int_tuple)
+        parser.add_argument('--obj_size', default='256, 256', type=int_tuple)
         parser.add_argument('--loader_num_workers', default=4, type=int)
-        parser.add_argument('--dt', default=16, type=int)
+        parser.add_argument('--dt', default=10, type=int)
         parser.add_argument('--strip', default=4, type=int)
         parser.add_argument('--radius', default=35, type=int)
 
