@@ -17,7 +17,9 @@ def main(args):
     model_name = model_utils.get_model_name(args)
     float_dtype = torch.cuda.FloatTensor
 
+    print('loading train_loader ...')
     train_loader = model_utils.build_loaders(args)  # change to image
+    print('Done')
 
     model = model_utils.build_all_model(args)  # CNN, GCN, Encoder, Decoder
     model.type(float_dtype)
@@ -42,7 +44,7 @@ def main(args):
     if args.dataset == 'ss3':
         save_iters = [50000]
     elif args.dataset == 'vvn':
-        save_iters = [10, 100]
+        save_iters = [1000, 5000, 10000, 50000, 100000]
     elif args.dataset.startswith('penn'):
         save_iters = [100000, 300000]
     else:

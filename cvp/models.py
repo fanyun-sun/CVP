@@ -92,6 +92,7 @@ class BaseBG(nn.Module):
 
         preds['kl_loss'] = kl_loss
         preds['orig_z'] = long_u
+        # preds['img_z'] = img_z
         return preds
 
     def _forward_with_z(self, vid_batch, img_z, time_len):

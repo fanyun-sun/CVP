@@ -179,6 +179,7 @@ def build_vid_loaders(args):
     }
 
     # common_list = 'data/shapestacks/splits/'
+    # dset_kwargs['image_dir'] = '/mnt/fs4/fanyun/human_stimulis'
     dset_kwargs['image_dir'] = '/mnt/fs4/fanyun/stimulis'
     # if args.dataset in ['ss3']:
         # common_list = common_list + '/env_ccs+blocks-hard+easy-h=3-vcom=1+2+3-vpsf=0/'
