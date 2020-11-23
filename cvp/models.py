@@ -84,15 +84,25 @@ class BaseBG(nn.Module):
         }
         self.graph_net = GraphFactory[args.graph](**gconv_kwargs)
 
-    # def forward_with_reality(self, intput, time_len):
-        # """encode z / u with ground truth I_{t+T} w/o resample"""
-        # vid_batch = vid_batch_to_cuda(intput)
-        # vid_batch = self._forward_image_encode(vid_batch)
+    def forward_with_reality(self, intput, time_len):
+        """encode z / u with ground truth I_{t+T} w/o resample"""
+        vid_batch = vid_batch_to_cuda(intput)
+        vid_batch = self._forward_image_encode(vid_batch)
 
-        # # 2. get u, kl_loss, using f1, f2
-        # img_z, kl_loss, ori_z = self.encoder.no_sample(vid_batch)
-        # predictions = self._forward_with_z(vid_batch, img_z, time_len)
-        # return predictions
+        # 2. get u, kl_loss, using f1, f2
+        img_z, kl_loss, ori_z = self.encoder.no_sample(vid_batch)
+
+        for k in vid_batch.keys():
+            if k == 'bg_feat':
+                for i in range(len(vid_batch[k])):
+                    vid_batch[k][i] = vid_batch[k][i][3:]
+            elif k == 'index':
+                vid_batch[k] = vid_batch[k][3*3:]
+            else:
+                vid_batch[k] = vid_batch[k][3:]
+
+        predictions = self._forward_with_z(vid_batch, img_z, time_len-self.show_length)
+        return predictions
 
 
     def forward(self, in_vecs):
@@ -102,8 +112,17 @@ class BaseBG(nn.Module):
         # 2. get z, kl_loss, using only I_0, I_dt-1
         img_z, kl_loss, long_u = self.encoder(vid_batch)
 
+        for k in vid_batch.keys():
+            if k == 'bg_feat':
+                for i in range(len(vid_batch[k])):
+                    vid_batch[k][i] = vid_batch[k][i][3:]
+            elif k == 'index':
+                vid_batch[k] = vid_batch[k][3*3:]
+            else:
+                vid_batch[k] = vid_batch[k][3:]
+
         # before graph neural network
-        preds = self._forward_with_z(vid_batch, img_z, self.dt-self.show_length+1)
+        preds = self._forward_with_z(vid_batch, img_z, self.dt-self.show_length)
 
         preds['kl_loss'] = kl_loss
         preds['orig_z'] = long_u

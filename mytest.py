@@ -38,19 +38,20 @@ def main(args):
     for batch in tqdm(data_loader):
         with torch.no_grad():
             #predictions = model.forward_inception(batch, args.dt)
-            predictions = model.forward(batch)
+            predictions = model.forward_with_reality(batch)
         feats.append(predictions['appr'].squeeze().cpu().numpy().reshape(10, 2, 32*2*2))
-        total_loss_list, losses = loss_mng.separate_losses(batch, predictions)
-        if cnt == 0:
-            print(losses.keys())
-            print(losses)
-        sum_losses['bbox_loss'] += losses['bbox_loss']
-        sum_losses['appr_pixel_loss'] += losses['appr_pixel_loss']
+
+        # total_loss_list, losses = loss_mng.separate_losses(batch, predictions)
+        # if cnt == 0:
+            # print(losses.keys())
+            # print(losses)
+        # sum_losses['bbox_loss'] += losses['bbox_loss']
+        # sum_losses['appr_pixel_loss'] += losses['appr_pixel_loss']
         cnt += args.batch_size
     
-    print(sum_losses, cnt)
-    for k, s in sum_losses.items():
-        print(k, s/cnt)
+    # print(sum_losses, cnt)
+    # for k, s in sum_losses.items():
+        # print(k, s/cnt)
 
     np.save('tmp.npy', np.array(feats))
 
