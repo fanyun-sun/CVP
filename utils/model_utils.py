@@ -41,6 +41,7 @@ def build_loaders(args):
         from data.PennPoseKnows import build_vid_loaders
     elif args.dataset.startswith('demo'):
         from data.DemoImage import build_vid_loaders
+
     loader = build_vid_loaders(args)
     return loader
 

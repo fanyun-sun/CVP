@@ -43,6 +43,7 @@ def main(args):
         total_loss_list, losses = loss_mng.separate_losses(batch, predictions)
         if cnt == 0:
             print(losses.keys())
+            print(losses)
         sum_losses['bbox_loss'] += losses['bbox_loss']
         sum_losses['appr_pixel_loss'] += losses['appr_pixel_loss']
         cnt += args.batch_size
@@ -61,16 +62,14 @@ class BinaryClassification(torch.nn.Module):
             return self.linear(input_dimension)
 
 if __name__ == '__main__':
-    args = TestOptions().parse()
-    # default
-    args.kl_loss_weight = 1e-2
-    args.l1_dst_loss_weight = 1.
-    args.bbox_loss_weight = 1.#100
-    args.l1_src_loss_weight = 1.
-    main(args)
-    input()
-
-
+    # args = TestOptions().parse()
+    # # default
+    # args.kl_loss_weight = 1e-2
+    # args.l1_dst_loss_weight = 1.
+    # args.bbox_loss_weight = 1.#100
+    # args.l1_src_loss_weight = 1.
+    # main(args)
+    # input()
 
     import json
     import numpy as np
@@ -79,28 +78,53 @@ if __name__ == '__main__':
 
     with open('results/train_labels.json', 'r') as f:
         y_train = np.array(json.load(f)).astype(float)
-    with open('results/test_labels.json', 'r') as f:
+    # with open('results/test_labels.json', 'r') as f:
+    with open('results/human_labels.json', 'r') as f:
         y_test = np.array(json.load(f)).astype(float)
 
     X_train = np.load('results/train_10000.npy',) 
     X_train = X_train.reshape(X_train.shape[0], 10, -1)
-    X_test = np.load('results/test_10000.npy')
+    # X_test = np.load('results/test_10000.npy')
+    X_test = np.load('results/human_10000.npy')
     X_test = X_test.reshape(X_test.shape[0], 10, -1)
+
+    target_field = 0
+    X_tmp, y_tmp = [], []
+    cnt = 0
+    for i in range(y_test.shape[0]):
+        if y_test[i, target_field] == 1.:
+            cnt += 1
+            X_tmp.append(X_test[i, ...])
+            y_tmp.append(y_test[i, :])
+        elif cnt > 0:
+            cnt -= 1
+            X_tmp.append(X_test[i, ...])
+            y_tmp.append(y_test[i, :])
+    X_test, y_test = np.array(X_tmp), np.array(y_tmp)
+
 
     X_train = X_train[:, 0:4, ...]
     X_train = X_train.reshape(X_train.shape[0], -1)
     X_test = X_test[:, 0:4, ...]
     X_test = X_test.reshape(X_test.shape[0], -1)
-    y_train = y_train[:, 0:1]
-    y_test = y_test[:, 0:1]
+    y_train = y_train[:, target_field:target_field+1]
+    y_test = y_test[:, target_field:target_field+1]
 
     print(X_train.shape, y_train.shape)
     print(X_test.shape, y_test.shape)
 
-    batch_size = 2018
+    tmp = np.sum(y_train)
+    class_sample_count = np.array([y_train.shape[0]-tmp, tmp])
+    weight = 1. / class_sample_count
+    samples_weight = np.array([weight[int(t)] for t in y_train])
+    samples_weight = torch.from_numpy(samples_weight)
+    samples_weight = samples_weight.double()
+    sampler = torch.utils.data.sampler.WeightedRandomSampler(samples_weight, len(samples_weight))
+
+    batch_size = X_train.shape[0]
     train_dataset = torch.utils.data.TensorDataset(torch.Tensor(X_train), torch.Tensor(y_train))
     train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=batch_size,
-                                          shuffle=True, num_workers=2)
+                                          sampler=sampler, num_workers=2)
 
     test_dataset = torch.utils.data.TensorDataset(torch.Tensor(X_test), torch.Tensor(y_test))
     test_loader = torch.utils.data.DataLoader(test_dataset, batch_size=batch_size,
@@ -109,8 +133,9 @@ if __name__ == '__main__':
 
     model = BinaryClassification(X_train.shape[-1])
     criterion = torch.nn.BCEWithLogitsLoss()
-    optimizer = torch.optim.Adam(model.parameters())
-    n_epochs = 10000
+    optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
+    iterations = 100
+    n_epochs = 10
 
     train_losses = np.zeros(n_epochs)
     test_losses = np.zeros(n_epochs)
@@ -125,7 +150,7 @@ if __name__ == '__main__':
             loss.backward()
             optimizer.step()
             train_loss += loss.item()
-        print(train_loss)
+        print('===== Train loss =====', train_loss)
         train_losses[it] = train_loss
 
         test_loss = 0.
@@ -151,5 +176,5 @@ if __name__ == '__main__':
 
             test_acc = np.mean(y_test == p_test)
 
-        print(train_acc)
+        # print(train_acc)
         print(test_acc)

@@ -3,8 +3,8 @@
 # --------------------------------------------------------
 from __future__ import print_function
 import torch
-import torch.nn as nn
 import torch.nn.functional as F
+import torch.nn as nn
 import torchvision.models as models
 
 from .graph import GraphFactory
@@ -28,6 +28,8 @@ class BaseBG(nn.Module):
         self.fc7_dim = args.embedding_dim
         self.appr_dim = args.appr_dim
         self.feat_constraint = args.feat_constraint
+
+        self.show_length = args.show_length
 
         # build image tower
         resent = models.resnet18(pretrained=True)
@@ -55,6 +57,7 @@ class BaseBG(nn.Module):
             'norm': 'none',
             'act': args.activation,
             'dt': self.dt,
+            'show_length': self.show_length,
             'long_term': args.enc_long_term,
         }
         self.encoder = EncoderFactory[args.encoder](**enc_kwargs)
@@ -81,6 +84,17 @@ class BaseBG(nn.Module):
         }
         self.graph_net = GraphFactory[args.graph](**gconv_kwargs)
 
+    # def forward_with_reality(self, intput, time_len):
+        # """encode z / u with ground truth I_{t+T} w/o resample"""
+        # vid_batch = vid_batch_to_cuda(intput)
+        # vid_batch = self._forward_image_encode(vid_batch)
+
+        # # 2. get u, kl_loss, using f1, f2
+        # img_z, kl_loss, ori_z = self.encoder.no_sample(vid_batch)
+        # predictions = self._forward_with_z(vid_batch, img_z, time_len)
+        # return predictions
+
+
     def forward(self, in_vecs):
         vid_batch = vid_batch_to_cuda(in_vecs)
         # 1. Feature Extraction: 'feats' = 'appr' | 'bbox'
@@ -88,12 +102,27 @@ class BaseBG(nn.Module):
         # 2. get z, kl_loss, using only I_0, I_dt-1
         img_z, kl_loss, long_u = self.encoder(vid_batch)
 
-        preds = self._forward_with_z(vid_batch, img_z, self.dt)
+        # before graph neural network
+        preds = self._forward_with_z(vid_batch, img_z, self.dt-self.show_length+1)
 
         preds['kl_loss'] = kl_loss
         preds['orig_z'] = long_u
         # preds['img_z'] = img_z
         return preds
+
+    def forward_inception(self, intput, time_len, seed=None):
+        """sample z / u from a distribution"""
+        vid_batch = vid_batch_to_cuda(intput)
+        vid_batch = self._forward_image_encode(vid_batch)
+
+        V = vid_batch['bbox'].size(1)
+        # 2. get u, kl_loss, using f1, f2
+        img_z = self.encoder.batch_sample(V, time_len, seed, vid_batch['image'][0])
+
+
+        predictions = self._forward_with_z(vid_batch, img_z, time_len)
+        return predictions
+
 
     def _forward_with_z(self, vid_batch, img_z, time_len):
         preds = self._forward_n_step(vid_batch, img_z, time_len)
@@ -109,27 +138,6 @@ class BaseBG(nn.Module):
             new_key = 'pred_' + key
             preds[new_key] = dst_recon[key]
         return preds
-
-    def forward_with_reality(self, intput, time_len):
-        """encode z / u with ground truth I_{t+T} w/o resample"""
-        vid_batch = vid_batch_to_cuda(intput)
-        vid_batch = self._forward_image_encode(vid_batch)
-
-        # 2. get u, kl_loss, using f1, f2
-        img_z, kl_loss, ori_z = self.encoder.no_sample(vid_batch)
-        predictions = self._forward_with_z(vid_batch, img_z, time_len)
-        return predictions
-
-    def forward_inception(self, intput, time_len, seed=None):
-        """sample z / u from a distribution"""
-        vid_batch = vid_batch_to_cuda(intput)
-        vid_batch = self._forward_image_encode(vid_batch)
-
-        # 2. get u, kl_loss, using f1, f2
-        V = vid_batch['bbox'].size(1)
-        img_z = self.encoder.batch_sample(V, time_len, seed, vid_batch['image'][0])
-        predictions = self._forward_with_z(vid_batch, img_z, time_len)
-        return predictions
 
     def _forward_n_step(self, vid_batch, img_z, time_len):
         cur_frame = self.filter_time_stamp(0, vid_batch)

@@ -178,14 +178,7 @@ def build_vid_loaders(args):
         'collate_fn': dt_collate_fn,
     }
 
-    # common_list = 'data/shapestacks/splits/'
-    # dset_kwargs['image_dir'] = '/mnt/fs4/fanyun/human_stimulis'
-    dset_kwargs['image_dir'] = '/mnt/fs4/fanyun/stimulis'
-    # if args.dataset in ['ss3']:
-        # common_list = common_list + '/env_ccs+blocks-hard+easy-h=3-vcom=1+2+3-vpsf=0/'
-    # else:
-        # num = int(args.dataset[2])
-        # common_list = common_list + '/env_ccs+blocks-hard+easy-h=%d-vcom=1+2+3+4+5+6-vpsf=0/' % num
+    dset_kwargs['image_dir'] = '/mnt/fs4/fanyun/cvp_stimulis/{}'.format(args.dataset.split('/')[1])
 
     dset_kwargs['training'] = args.is_train
     if args.is_train:
@@ -199,8 +192,8 @@ def build_vid_loaders(args):
     if not os.path.exists(dset_kwargs['list_path']):
         print('not exists', dset_kwargs['list_path'])
         raise FileExistsError
-    train_dset = ShapeStacks(**dset_kwargs)
 
+    train_dset = ShapeStacks(**dset_kwargs)
     loader = DataLoader(train_dset, **loader_kwargs)
 
     return loader
@@ -213,7 +206,7 @@ if __name__ == '__main__':
     args = TestOptions().parse()
     torch.manual_seed(123)
     # args.batch_size=4
-    args.dt=16
+    args.dt=10
     train_loader = build_vid_loaders(args)
     key_set = ['index', 'image', 'crop', 'bbox', 'trip']
 

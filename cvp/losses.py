@@ -26,7 +26,7 @@ class LossManager(object):
 
     def _separate_losses(self, truth, predictions):
         """losses are comprised of 1. KL loss 2. prediction loss 3. reconstruction loss"""
-        dt = truth['bbox'].size(0)
+        dt = truth['bbox'].size(0) - self.args.show_length + 1
         pred_loss = torch.zeros(1).to(predictions['kl_loss'])
         ae_loss = torch.zeros(1).to(predictions['kl_loss'])
         losses = {}
