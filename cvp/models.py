@@ -90,7 +90,7 @@ class BaseBG(nn.Module):
         vid_batch = self._forward_image_encode(vid_batch)
 
         # 2. get u, kl_loss, using f1, f2
-        img_z, kl_loss, ori_z = self.encoder.no_sample(vid_batch)
+        img_z, kl_loss, ori_z, src_feats = self.encoder.no_sample(vid_batch)
 
         for k in vid_batch.keys():
             if k == 'bg_feat':
@@ -102,6 +102,8 @@ class BaseBG(nn.Module):
                 vid_batch[k] = vid_batch[k][3:]
 
         predictions = self._forward_with_z(vid_batch, img_z, time_len-self.show_length)
+        assert type(predictions) == dict
+        predictions['src_feats'] = src_feats
         return predictions
 
 
@@ -110,7 +112,7 @@ class BaseBG(nn.Module):
         # 1. Feature Extraction: 'feats' = 'appr' | 'bbox'
         vid_batch = self._forward_image_encode(vid_batch)
         # 2. get z, kl_loss, using only I_0, I_dt-1
-        img_z, kl_loss, long_u = self.encoder(vid_batch)
+        img_z, kl_loss, long_u, src_feats = self.encoder(vid_batch)
 
         for k in vid_batch.keys():
             if k == 'bg_feat':

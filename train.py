@@ -43,14 +43,15 @@ def main(args):
     logger = Logger(model_name, args)
     loss_mng = LossManager(args)
 
-    if args.dataset == 'ss3':
-        save_iters = [50000]
-    elif args.dataset.startswith('vvn'):
-        save_iters = [10, 100, 1000, 5000, 10000, 50000, 100000]
-    elif args.dataset.startswith('penn'):
-        save_iters = [100000, 300000]
-    else:
-        raise NotImplementedError
+    # if args.dataset == 'ss3':
+        # save_iters = [50000]
+    # elif args.dataset.startswith('vvn'):
+        # save_iters = [9, 100, 1000, 5000, 10000, 50000, 100000]
+    # elif args.dataset.startswith('penn'):
+        # save_iters = [99999, 300000]
+    # else:
+        # raise NotImplementedError
+    save_iters = [10, 100, 1000, 5000, 10000, 50000, 100000]
 
     while True:
         if t >= save_iters[-1]:

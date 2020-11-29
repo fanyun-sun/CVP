@@ -34,16 +34,16 @@ class VidEncoder(nn.Module):
         Called during training. 1. encode to u 2. resample
         :return: obj_z: (Dt, V, D), kl_loss: criterion
         """
-        obj_z, kl_loss, ori_z = self._forward(vid_batch, True)
-        return obj_z, kl_loss, ori_z
+        obj_z, kl_loss, ori_z, src_feats = self._forward(vid_batch, True)
+        return obj_z, kl_loss, ori_z, src_feats
 
     def no_sample(self, vid_batch):
         """
         Called during realistic testing. 1. encode u. 2. NO sample
         :return: obj_z: (Dt, V, D), kl_loss: criterion
         """
-        obj_z, kl_loss, ori_z = self._forward(vid_batch, False)
-        return obj_z, kl_loss, ori_z
+        obj_z, kl_loss, ori_z, src_feats = self._forward(vid_batch, False)
+        return obj_z, kl_loss, ori_z, src_feats
 
     def _forward(self, vid_batch, sample=True):
         raise NotImplementedError
@@ -113,12 +113,12 @@ class TrajHierarchy(VidEncoder):
         # src_feat = self.image_tower(src_image).view(V, -1)
         # self.show_length = 4
         src_feats = []
-        for i in range(self.show_length):
+        for i in range(self.dt):
             src_image = vid['image'][i].squeeze(1)
             src_feat = self.image_tower(src_image).view(V, -1)
             src_feats.append(src_feat)
 
-        src_feat, _ = self.mylstm(torch.stack(src_feats))
+        src_feat, _ = self.mylstm(torch.stack(src_feats[:4]))
         src_feat = torch.sum(src_feat, dim=0)
 
         dst_feat = self.image_tower(dst_image).view(V, -1)  ## (1, 512)
@@ -129,7 +129,7 @@ class TrajHierarchy(VidEncoder):
         # (Dt, V, D)
         img_z = self.generate_z_from_u(reparam, dt-self.show_length+1, V)
         kl_loss = -0.5 * torch.mean(1 + logvar - long_u_mu.pow(2) - logvar.exp())
-        return img_z, kl_loss, long_u_mu
+        return img_z, kl_loss, long_u_mu, src_feats
 
     def generate_z_from_u(self, u, dt, V):
         """

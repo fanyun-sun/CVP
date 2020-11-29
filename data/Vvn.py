@@ -72,6 +72,7 @@ class ShapeStacks(Dataset):
         - 'index': (dt,)
         """
         vid_point = []
+        assert self.dt == 10
         for dt in range(self.dt):
             this_index = self.get_index_after(self.index_list[index], dt)
             vid_obj = {}
@@ -178,7 +179,8 @@ def build_vid_loaders(args):
         'collate_fn': dt_collate_fn,
     }
 
-    dset_kwargs['image_dir'] = '/mnt/fs4/fanyun/cvp_stimulis/{}'.format(args.dataset.split('/')[1])
+
+    dset_kwargs['image_dir'] = args.dataset
 
     dset_kwargs['training'] = args.is_train
     if args.is_train:
@@ -186,9 +188,19 @@ def build_vid_loaders(args):
         loader_kwargs['shuffle'] = True
     else:
         print('val')
+        if 'human' in args.dataset:
+            import json
+            with open('{}/labels.json'.format(dset_kwargs['image_dir']), 'r') as f:
+                labels = json.load(f)
+            instances = len(labels)
+            print('number of human stimulis', instances)
+            with open('./eval.txt', 'w') as f:
+                for i in range(instances):
+                    f.write('{}\n'.format(i))
+
         dset_kwargs['list_path'] = './eval.txt'
         dset_kwargs['max_samples'] = args.num_val_samples
-        loader_kwargs['shuffle'] = args.shuffle_val
+        loader_kwargs['shuffle'] = False
     if not os.path.exists(dset_kwargs['list_path']):
         print('not exists', dset_kwargs['list_path'])
         raise FileExistsError
